@@ -4,7 +4,37 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository status
 
-This homework is **not yet implemented** — the working tree currently contains only [TASKS.md](TASKS.md), which is the spec. Everything below describes the target architecture defined by that spec. Read TASKS.md first; if you find a discrepancy between this file and TASKS.md, TASKS.md wins.
+This homework is implemented and operational. Read TASKS.md first; if you find a discrepancy between this file and TASKS.md, TASKS.md wins.
+
+## Pipeline auto-chaining (MANDATORY)
+
+When you (Claude Code, acting as orchestrator) invoke any pipeline agent for a bug ID, you **must** automatically invoke every subsequent agent in the sequence until the pipeline completes or hits a hard stop. Do not wait for the user to trigger the next step.
+
+### Sequence
+
+```
+bug-researcher → research-verifier → bug-planner → bug-fixer → security-verifier → unit-test-generator
+```
+
+### Rules
+
+1. After each agent succeeds, immediately launch the next one with the same `<bug-id>`.
+2. **Hard stop — research-verifier FAIL**: if `verified-research.md` contains `Overall result: FAIL`, report the failure to the user and stop. Do not run bug-planner or anything after it.
+3. **Hard stop — bug-fixer test failure**: after bug-fixer completes, run `npm test`. If tests fail, report the failure and stop. Do not run security-verifier or unit-test-generator.
+4. Verify the expected output file exists after each step before launching the next (see file contract table below).
+5. If invoked starting from any mid-pipeline agent (e.g. `@agent-bug-planner`), continue from that point forward — do not re-run earlier steps.
+6. Report a one-line status update to the user after each agent completes ("✓ research-verifier done → launching bug-planner…").
+
+### Entry points
+
+| User invokes | Pipeline starts from |
+|---|---|
+| `@agent-bug-researcher <id>` | Step 1 — runs full pipeline |
+| `@agent-research-verifier <id>` | Step 2 — skips researcher |
+| `@agent-bug-planner <id>` | Step 3 — skips researcher + verifier |
+| `@agent-bug-fixer <id>` | Step 4 — skips first three |
+| `@agent-security-verifier <id>` | Step 5 — runs last two only |
+| `@agent-unit-test-generator <id>` | Step 6 — runs last step only |
 
 ## What this project is
 
@@ -18,9 +48,13 @@ Bug Researcher → Bug Research Verifier → Bug Planner → Bug Fixer → Secur
 
 The Bug Researcher and Bug Planner are upstream producers — they are referenced as inputs but are **not** among the 4 required agent files. The 4 required agents are research-verifier, bug-fixer, security-verifier, unit-test-generator.
 
-## Single-command execution (required)
+## Execution modes
 
-The whole pipeline must run from one command (e.g. `npm run pipeline` or `./run-pipeline.sh`) that invokes each agent in order and auto-loads its skills. No manual per-agent invocation. When implementing the runner, ensure each step's output file exists before launching the next step, and short-circuit on failure (especially: if Bug Fixer's tests fail, stop and surface the failure rather than letting Security Verifier and Unit Test Generator run on a broken tree).
+**Primary — conversation orchestration**: invoke any entry-point agent in a Claude Code session; the orchestrator auto-chains all subsequent steps per the rules above.
+
+**Secondary — shell script**: `./run-pipeline.sh <bug-id>` (or `npm run pipeline`) runs the same sequence headlessly via `claude -p --agent`. Use this for CI or when running without an interactive session.
+
+Both modes share the same hard-stop rules and file contract.
 
 ## File layout the pipeline depends on
 

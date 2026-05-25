@@ -3,11 +3,9 @@
 ## Prerequisites
 
 - Node.js 18+ and npm.
-- Claude Code CLI (`claude`) installed and authenticated. The pipeline runner
-  shells out to `claude -p` once per agent.
+- Claude Code installed and authenticated (VS Code extension or CLI).
 
 ```bash
-claude --version    # sanity check
 node --version      # 18+
 ```
 
@@ -39,23 +37,28 @@ npm test
 Expected: tests in `tests/users.baseline.test.js` **fail** — they encode the
 seeded defects.
 
-## Run the full pipeline (single command)
+## Run the full pipeline
 
-```bash
-npm run pipeline
-# or, equivalently:
-./run-pipeline.sh 001-seeded
+Open a Claude Code session in this directory and invoke any entry-point agent.
+The orchestrator **automatically chains** every subsequent step without further
+input from you:
+
+```
+@agent-bug-researcher 001-seeded
 ```
 
-The runner:
+That single message runs all six agents in sequence. You will see a one-line
+status update after each step. The chain stops automatically on:
 
-1. Validates `context/bugs/001-seeded/bug-context.md` exists.
-2. Invokes `claude -p` for each agent in order, using the corresponding
-   `agents/*.agent.md` as the system prompt.
-3. After each step, verifies the expected output file was produced.
-4. After the Bug Fixer step, runs `npm test`; if tests fail, the pipeline
-   stops and Security Verifier / Unit Test Generator do **not** run.
-5. Writes a full transcript to `docs/pipeline.log`.
+- Research Verifier returning `Overall result: FAIL`
+- `npm test` failing after the Bug Fixer step
+
+To resume from a mid-pipeline step (e.g. if you need to re-run from the
+planner onward):
+
+```
+@agent-bug-planner 001-seeded
+```
 
 ## Verify the result
 
@@ -67,14 +70,18 @@ cat context/bugs/001-seeded/security-report.md
 cat context/bugs/001-seeded/test-report.md
 ```
 
-## Re-run a single agent (manual)
+## Re-run from a specific step
 
-```bash
-BUG_ID=001-seeded
-claude -p "Run the Bug Fixer for BUG_ID=$BUG_ID..." \
-       --append-system-prompt "$(cat agents/bug-fixer.agent.md)" \
-       --permission-mode acceptEdits
+Invoke the desired entry-point agent directly. The orchestrator will
+auto-chain all subsequent steps:
+
 ```
+@agent-bug-fixer 001-seeded
+```
+
+This runs bug-fixer → security-verifier → unit-test-generator, skipping the
+earlier steps. See the entry-point table in `CLAUDE.md` for all starting
+points.
 
 ## Reset to the seeded state
 

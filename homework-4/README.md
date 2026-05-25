@@ -6,7 +6,7 @@
 A six-step agent pipeline that operates on a small Express sample app with
 deliberately seeded defects. The pipeline locates the defects, plans the fix,
 applies it, security-reviews the change, and generates unit tests — all from
-a single command.
+a single Claude Code conversation command.
 
 ## Pipeline
 
@@ -37,12 +37,12 @@ Each `agents/*.agent.md` declares its model in YAML frontmatter.
 
 | Agent | Model | Rationale |
 |-------|-------|-----------|
-| `research-verifier` | `claude-opus-4-7` | Fact-checking requires careful, citation-grade reasoning. |
-| `bug-fixer` | `claude-sonnet-4-6` | Routine, mechanical execution of a plan — speed and cost matter more than reasoning depth. |
-| `security-verifier` | `claude-opus-4-7` | Security review benefits from the strongest reasoning model available. |
-| `unit-test-generator` | `claude-sonnet-4-6` | Scaffolding tests around clearly-defined changes; Sonnet is sufficient. |
-| `bug-researcher` | `claude-sonnet-4-6` | Targeted code-locating work; Sonnet is fast and accurate enough. |
-| `bug-planner` | `claude-sonnet-4-6` | Structured translation of verified research into deterministic steps. |
+| `research-verifier` | `opus` | Fact-checking requires careful, citation-grade reasoning. |
+| `bug-fixer` | `sonnet` | Routine, mechanical execution of a plan — speed and cost matter more than reasoning depth. |
+| `security-verifier` | `opus` | Security review benefits from the strongest reasoning model available. |
+| `unit-test-generator` | `sonnet` | Scaffolding tests around clearly-defined changes; Sonnet is sufficient. |
+| `bug-researcher` | `sonnet` | Targeted code-locating work; Sonnet is fast and accurate enough. |
+| `bug-planner` | `sonnet` | Structured translation of verified research into deterministic steps. |
 
 ## Skills
 
@@ -69,13 +69,25 @@ fail until the Bug Fixer applies the planned changes.
 
 See [HOWTORUN.md](HOWTORUN.md).
 
+## Agent files
+
+Each agent has **two** files that are kept in sync:
+
+- [agents/*.agent.md](agents/) — required by the homework spec
+  (`TASKS.md` mandates this exact path and naming).
+- [.claude/agents/*.md](.claude/agents/) — Claude Code subagent
+  definitions consumed by the conversation runner (`/agents`, auto-chaining).
+
+Both files carry identical frontmatter (`name`, `description`, `model`,
+`tools`) and body — the `.claude/agents/` copy is what Claude Code actually
+invokes.
+
 ## Deliverables
 
-- 4 required agents in [agents/](agents/) (+ 2 upstream).
+- 4 required agents in [agents/](agents/) (+ 2 upstream), with runtime
+  equivalents in [.claude/agents/](.claude/agents/).
 - 2 skills in [skills/](skills/).
 - Runnable sample app in [src/](src/) with seeded defects.
 - Pipeline artifacts under
   [context/bugs/001-seeded/](context/bugs/001-seeded/).
-- Screenshots in [docs/screenshots/](docs/screenshots/) (added after a real
-  pipeline run).
-- Single-command runner: [run-pipeline.sh](run-pipeline.sh).
+- Screenshots in [docs/screenshots/](docs/screenshots/).
