@@ -1,0 +1,22 @@
+{
+  "name": "homework-4-pipeline",
+  "version": "1.0.0",
+  "description": "4-agent pipeline operating on a small Express sample app with seeded bugs.",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "test": "jest --colors",
+    "pipeline": "./run-pipeline.sh"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^7.0.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": ["<rootDir>/tests/**/*.test.js"]
+  }
+}
